@@ -67,13 +67,10 @@
           class="d-flex flex-column align-items-center justify-content-center"
           style="height: 400px"
         >
-          {% if loggedin == True %}
-
-          <h2>Welcome {{name}}</h2>
-          <p>Email: {{email}}</p>
-          <p>DOB: {{dob}}</p>
-
-          {% else %} Please, Log In {% endif %}
+          <c:choose>
+            {% if loggedin == True %} You are successfully logged out {% else %}
+            Please, Log In {% endif %}
+          </c:choose>
         </div>
       </div>
     </div>

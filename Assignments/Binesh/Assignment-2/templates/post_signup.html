@@ -67,13 +67,8 @@
           class="d-flex flex-column align-items-center justify-content-center"
           style="height: 400px"
         >
-          {% if loggedin == True %}
-
-          <h2>Welcome {{name}}</h2>
-          <p>Email: {{email}}</p>
-          <p>DOB: {{dob}}</p>
-
-          {% else %} Please, Log In {% endif %}
+          {{msg}}
+          <a class="btn btn-primary mt-2" href="/sign_in">Sign In</a>
         </div>
       </div>
     </div>

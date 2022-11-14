@@ -1,1 +1,4 @@
 DigiCertGlobalRootCA.crt
+Dockerfile
+requirements.txt
+venv/

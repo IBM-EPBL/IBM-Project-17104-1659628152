@@ -6,6 +6,7 @@ from datetime import date
 from io import BytesIO
  
 app = Flask(__name__)
+app.config['SECRET_KEY'] = 'e5ac358c-f0bf-11e5-9e39-d3b532c10a28'
 # oauth = OAuth(app)
 arr2=[]
 
@@ -152,6 +153,10 @@ def registerPage():
     else:
         return render_template('register.html')
 
+@app.route("/seekerHome", methods=["GET"])
+def seekerHome():
+    return render_template('SeekerMenu.html')
+
 #Seeker Login
 @app.route("/login_seeker",methods=["GET","POST"])
 def loginPageSeeker():
@@ -168,7 +173,7 @@ def loginPageSeeker():
         if res['1']==1:
             session['loggedin']= True
             session['user'] = useremail
-            return render_template('SeekerMenu.html')
+            return redirect(url_for('seekerHome'))
         else:
             print("Wrong Username or Password")
             return render_template('loginseeker.html')
@@ -191,7 +196,7 @@ def loginPageRecruiter():
         if res['1']==1:
             session['loggedin']= True
             session['user'] = useremail
-            return render_template("recruitermenu.html")
+            return redirect(url_for('recruitermenu'))
         else:
             print("Wrong Username or Password")
             return render_template('loginrecruiter.html')
@@ -238,7 +243,8 @@ def JobDescPage():
                     disable=True
                 else:
                     disable=False
-                return render_template('JobDescription.html',data=dictionary,fields=fields,disable=disable)
+                skills = dictionary["KEYSKILLS"].split(",")
+                return render_template('JobDescription.html',data=dictionary,fields=fields,disable=disable, skills = skills)
             else:
                 print("INVALID JOB ID")
                 return render_template('sample.html')
@@ -346,6 +352,84 @@ def viewjobs():
     except Exception as e:
         print(e)
     return render_template('PostedJobList.html', jobs=jobList)
+
+@app.route("/mySkills", methods=["GET"])
+def mySkills():
+    return render_template('MySkillsForm.html')
+
+@app.route("/postSkills", methods=["POST"])
+def postSkills():
+    email = session['user']
+    conn = connection()
+    try:
+        sql = "INSERT INTO SeekerSkills VALUES('{}', '{}')".format(email, request.form["skills"])
+        ibm_db.exec_immediate(conn,sql)
+        flash("My Skills are added. Click the Recommended Job to find jobs that matched your skills")
+        
+        print('Successfully added SKILLSET')
+        return redirect(url_for('seekerHome'))
+    except Exception as error:
+        print(error)
+        return redirect(url_for('mySkills'))
+
+def findMatch(mySkills, reqSkills):
+    count = 0
+    for skill in reqSkills:
+        if skill in mySkills:
+            count = count + 1
+    total = len(reqSkills)
+    perct = (count*100)//total
+    return [count, perct]
+
+@app.route("/recommendedJobs", methods=["GET"])
+def recommendedJobs():
+    email = session['user']
+    try:
+        conn=connection()
+
+        sql = "Select * from SeekerSkills where EMAIL = '{}'".format(email)
+        stmt = ibm_db.exec_immediate(conn, sql)
+        dictionary = ibm_db.fetch_both(stmt)
+        seekerSkills = ""
+        print("--------------------------------------------------------------")
+        while dictionary != False:
+            seekerSkills = dictionary['SKILLSET']
+            dictionary = ibm_db.fetch_both(stmt)  
+        print("--------------------------------------------------------------")
+        skillsList = seekerSkills.split(",")
+        print("My Skills: ", skillsList)
+
+        arr=[]
+        list = []
+        for i in range(0, len(skillsList)):
+            list = []
+            arr.append(list)
+        arr.append(list)
+
+        sql="SELECT * FROM JOBS"
+        stmt = ibm_db.exec_immediate(conn, sql)
+        dictionary = ibm_db.fetch_both(stmt)
+        while dictionary != False:
+            inst={}
+            inst['JOBID']=dictionary['JOBID']
+            inst['COMPANY']=dictionary['COMPANY']
+            inst['ROLE']=dictionary['ROLE']
+            inst['SALARY']=dictionary['SALARY']
+            inst['LOCATION']=dictionary['LOCATION']
+            inst['JOBTYPE']=dictionary['JOBTYPE']
+            inst['POSTEDDATE']=dictionary['POSTEDDATE']
+            data = findMatch(skillsList, dictionary['KEYSKILLS'].split(","))
+            inst['PERCENTMATCH']=data[1]
+            arr[data[0]].append(inst)
+            dictionary = ibm_db.fetch_both(stmt)
+
+        descArr = []
+        for l in reversed(arr):
+            for dict in l:
+                descArr.append(dict)      
+    except Exception as e:
+        print(e)
+    return render_template('RecommendedJobList.html',arr=descArr)
 
 @app.route("/myapplications", methods=["GET"])
 def myApplications():
@@ -572,6 +656,6 @@ def postjob():
         traceback.print_exc()
 
 if __name__=='__main__':
-    app.config['SECRET_KEY']='super secret key'
-    app.config['SESSION_TYPE']='filesystem'
+    # app.config['SECRET_KEY']='super secret key'
+    # app.config['SESSION_TYPE']='memcached'
     app.run(debug=True)

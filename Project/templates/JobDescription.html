@@ -59,9 +59,19 @@
         <fieldset>
         <legend style="color:#FF3351; text-align: center;">JOB DESCRIPTION</legend>
         {% for i in range(0,17): %}
-            {% if i!=0: %}
+            {% if i!=0 and i!=8: %}
                 <div><h5>{{fields[i]}}</h5></div> 
                 <div>{{data[i]}}</div><br>
+            {% endif %}
+            {% if i==8: %}
+                <div><h5>{{fields[i]}}</h5></div> 
+                <div>
+                    <ul>
+                        {%for j in range(0,skills|length): %}
+                            <li>{{skills[j]}}</li>
+                        {% endfor %}
+                    </ul>
+                </div>
             {% endif %}
         {% endfor %}
         </fieldset><br><br>
